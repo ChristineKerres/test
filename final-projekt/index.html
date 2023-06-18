@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Latent Walk</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="gradioClient_v2.js"></script>
+  </head>
+
+  <body>
+    <input type="text" id="input1" /><input type="text" id="input2" />
+    <button onclick="capturePhoto()">Capture Photo</button
+    ><button onclick="changedValues()">Generate</button>
+
+    <div id="content"></div>
+
+    <script>
+      ////Image to text Modell??
+
+      /////Gradio-Client
+      var client = new gradioClient("t3.nonlinearform.com", 2);
+      var imageData = null;
+      ///// Kamera Start
+      async function capturePhoto() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          const video = document.createElement("video");
+          const photoButton = document.createElement("button");
+          photoButton.textContent = "Take Photo";
+          document.body.appendChild(video);
+          document.body.appendChild(photoButton);
+          video.srcObject = stream;
+          await video.play();
+
+          photoButton.addEventListener("click", async () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext("2d");
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const base64 = canvas.toDataURL("image/jpeg");
+
+            imageData = base64;
+            video.srcObject = null;
+            stream.getTracks().forEach((track) => track.stop());
+            document.body.removeChild(video);
+            document.body.removeChild(photoButton);
+
+            const photoElem = document.createElement("img");
+            photoElem.src = base64;
+            document.getElementById("content").appendChild(photoElem);
+            ///
+          });
+        } catch (error) {
+          console.error("Error accessing camera:", error);
+        }
+      }
+      ///// Kamera Ende
+      ///// KI Start
+      function changedValues() {
+        const input1 = document.querySelector("#input1").value;
+        const input2 = document.querySelector("#input2").value;
+
+        for (var i = 0; i < 0.1; i += 0.1) {
+          console.log(imageData);
+          var result = client
+            .predict([input1, input2, imageData, 200, 10, 20, 43])
+            .then((data) => placeContent(data));
+        }
+      }
+
+      function placeContent(image) {
+        var elem = document.createElement("img");
+        elem.src = image;
+        document.getElementById("content").appendChild(elem);
+      }
+      ///// KI Ende
+    </script>
+  </body>
+</html>
